@@ -1,0 +1,93 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openpdc-lower
+spec:
+  selector:
+    matchLabels:
+      app: openpdc-low
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: openpdc-low
+    spec:
+      initContainers:
+      - name: openpdc-init
+        image: claudious96/openpdc-init:latest
+        env:
+            - name: DB_ROOTPASS
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password
+            - name: DB_USER
+              value: openpdc
+            - name: DB_PASS
+              value: password
+            - name: DB_NAME
+              value: lower
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_URL
+              value: mysql.default.svc.cluster.local
+            - name: SAMPLE_DATASET
+              value: "true"
+      containers:
+      - name: openpdc
+        image: claudious96/openpdc:latest
+        env:
+            - name: DB_USER
+              value: openpdc
+            - name: DB_PASS
+              value: password
+            - name: DB_NAME
+              value: lower
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_URL
+              value: mysql.default.svc.cluster.local
+            - name: NODE_ID
+              value: e7a5235d-cb6f-4864-a96e-a8686f36e599
+        livenessProbe:
+          exec:
+            command:
+                - /bin/sh
+                - liveness.sh
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        ports:
+        - name: outputstream
+          containerPort: 4712
+          protocol: TCP
+        - name: datapublisher
+          containerPort: 6165
+          protocol: TCP
+        - name: console
+          containerPort: 8500
+          protocol: TCP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: openpdc-low
+spec:
+  type: NodePort
+  ports:
+    - name: console
+      port: 8500
+      targetPort: 8500
+      nodePort: 30085
+    - name: outputstream
+      port: 4712
+      nodePort: 30099
+    - name: datapublisher
+      port: 6165
+      targetPort: 6165
+      nodePort: 30065
+  selector:
+    app: openpdc-low
