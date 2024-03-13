@@ -1,0 +1,165 @@
+apiVersion: v1
+binaryData:
+  pmu.bin: MTUwMDAKNDcxMgpDRkcgMSAxMzQKqjEAhgABYOb4aQCtpbgA////AAFwbXUtMSAgICAgICAgICAgAAEAAAADAAEAAEEgICAgICAgICAgICAgICBCICAgICAgICAgICAgICAgQyAgICAgICAgICAgICAgIEUgICAgICAgICAgICAgICAABR9NAAUfTQAFH00BAAFPAAEAAAAZ83QK 
+kind: ConfigMap
+metadata:
+  name: pmu-1
+---
+apiVersion: v1
+binaryData:
+  pmu.bin: MTUwMDAKNDcxMgpDRkcgMSAxMzQKqjEAhgACYOmTWgBxggEA////AAFwbXUtMiAgICAgICAgICAgAAIAAAADAAEAAEEgICAgICAgICAgICAgICBCICAgICAgICAgICAgICAgQyAgICAgICAgICAgICAgIEQgICAgICAgICAgICAgICAAB3NZAAdzWQAHc1kBAAIfAAEAAAAZ9ycK
+kind: ConfigMap
+metadata:
+  name: pmu-2
+---
+apiVersion: v1
+binaryData:
+  pmu.bin: MTUwMDAKNDcxMgpDRkcgMSAxMzQKqjEAhgADYOmT8wDPmpwA////AAFwbXUtMyAgICAgICAgICAgAAMAAAADAAEAAEEgICAgICAgICAgICAgICBCICAgICAgICAgICAgICAgQyAgICAgICAgICAgICAgIEQgICAgICAgICAgICAgICAACj6aAAo+mgAKPpoBAAK9AAEAAAAZqJUK
+kind: ConfigMap
+metadata:
+  name: pmu-3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pmu-1
+spec:
+  selector:
+    matchLabels:
+      app: pmu-1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: pmu-1
+    spec:
+      containers:
+      - name: pmu
+        image: claudiolor/pmu-cli
+        command: [ "PMU", "-i", "pmu.bin" ]
+        ports:
+        - containerPort: 4712
+        env:
+        - name: TERM
+          value: xterm
+        volumeMounts:
+        - name: pmu-1
+          mountPath: /pmu.bin
+          subPath: pmu.bin
+      volumes:
+        - name: pmu-1
+          configMap:
+            name: pmu-1
+      restartPolicy: Always
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pmu-2
+spec:
+  selector:
+    matchLabels:
+      app: pmu-2
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: pmu-2
+    spec:
+      containers:
+      - name: pmu
+        image: claudiolor/pmu-cli
+        command: [ "PMU", "-i", "pmu.bin" ]
+        ports:
+        - containerPort: 4712
+        env:
+        - name: TERM
+          value: xterm
+        volumeMounts:
+        - name: pmu-2
+          mountPath: /pmu.bin
+          subPath: pmu.bin
+      volumes:
+        - name: pmu-2
+          configMap:
+            name: pmu-2
+      restartPolicy: Always
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pmu-3
+spec:
+  selector:
+    matchLabels:
+      app: pmu-3
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: pmu-3
+    spec:
+      containers:
+      - name: pmu
+        image: claudiolor/pmu-cli
+        command: [ "PMU", "-i", "pmu.bin" ]
+        ports:
+        - containerPort: 4712
+        env:
+        - name: TERM
+          value: xterm
+        volumeMounts:
+        - name: pmu-3
+          mountPath: /pmu.bin
+          subPath: pmu.bin
+      volumes:
+        - name: pmu-3
+          configMap:
+            name: pmu-3
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pmu-1
+  labels:
+    name: pmu-1
+spec:
+  type: NodePort
+  ports:
+    - port: 4712
+      targetPort: 4712
+      nodePort: 30501
+  selector:
+    app: pmu-1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pmu-2
+  labels:
+    name: pmu-2
+spec:
+  selector:
+    app: pmu-2
+  ports:
+    - protocol: TCP
+      port: 4712
+      targetPort: 4712
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pmu-3
+  labels:
+    name: pmu-3
+spec:
+  selector:
+    app: pmu-3
+  ports:
+    - protocol: TCP
+      port: 4712
+      targetPort: 4712
