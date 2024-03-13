@@ -35,7 +35,7 @@ liqoctl status
 ```
 N.B.
 - Be carefull with the version: liqoctl and Liqo versions must match. With the previous commands we install version v0.9.4 of Liqo and liqoctl v0.9.4. You can check the installed versions with the command `liqoctl version`.
-- Furthermore, the option `--set storage.realStorageClassName=longhorn` is needed when one later deploys the mysql pod of the demo. If not set, when using the liqo storageclass, the offloaded (real) PVC uses the default storageclass `local-path` in the remote cluster, hence not bounding any (real) PV (there is the same problem if the pod is not offloaded; the real PVC uses the default storageclass of the local cluster). For further details, see [ref1](https://github.com/liqotech/liqo/issues/1870) and [ref2](https://github.com/liqotech/liqo/blob/master/deployments/liqo/values.yaml).
+- Furthermore, the option `--set storage.realStorageClassName=longhorn` is needed when one later deploys stateful applications using Longhorn to provide data persistency. If not set, when using the liqo storageclass, the offloaded (real) PVC uses the default storageclass `local-path` in the remote cluster, hence not bounding any (real) PV (there is the same problem if the pod is not offloaded; the real PVC uses the default storageclass of the local cluster). For further details, see [Liqo virtual storage class documentation](https://docs.liqo.io/en/latest/usage/stateful-applications.html#liqo-virtual-storage-class).
 
 You can show the pods belonging to the liqo namespace with the command
 ```
@@ -65,7 +65,7 @@ kubectl apply -f <filename.yaml> -n liqo-demo
 ```
 
 ## Install the testbed
-In order to guarantee volumes replications and persisentcy, we install Longhorn on both virtual machines:
+In order to guarantee volumes replication and data persisentcy, we install Longhorn on both virtual machines:
 ```
 apt install open-iscsi nfs-common
 cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
@@ -78,10 +78,20 @@ helm install longhorn longhorn/longhorn \
 --set defaultDataLocality="best-effort" \
 --version 1.3.2
 ```
-Then, we apply the storageclass
+Then, from the [deploy](https://github.com/fluidos-project/intelligent-power-grid-use-case/tree/main/deploy) folder, we apply the storageclass
 ```
 kubectl apply -f storageclass-lh.yaml
 ```
+Ultimately, from the **local** cluster, we can install install the database that will contain the configurations of the OpenPDC
+```
+kubectl apply -f mysql.yaml -n liqo-demo
+```
+and finally, we apply the OpenPDC application with the command
+```
+kubectl apply -f openpdc-lower-level.yaml -n liqo-demo
+```
+We check that the MySQL and the OpenPDC are up and running, offloaded on the remote cluster. However, if a subsequent scheduling process takes place (e.g., following a restart), a set of automatic policies attracts pods in the cluster where the PV is already created, thus, preventing the MySQL pod from being scheduled on another node. Consequently, multiple replicas of the MySQL database should be deployed on the two clusters to allow the PDC to migrate seamlessly. 
+Moreover, inside a k3s cluster, the data persistency is guaranteed by the Longhorn storage system, but in a multi-cluster environment like that introduced by FLUIDOS, Longhorn is not able to guarantee this property anymore. In a multi-cluster context, it is essential to consider new approaches which guarantee data persistency at an application level. In the Intelligent Power Grid Use Case, solutions to replicate data between multiple MySQL replicas will be considered. Tools currently under experimentation are MySQL Group Replication and Percona XtraDB Cluster which both provide a high-availability MySQL clustering solution that offers synchronous multi-master replication. 
 
-
-
+## License
+This project is licensed under the Apache License - version 2.0, see the [LICENSE](LICENSE) file for details.
