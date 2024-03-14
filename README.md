@@ -93,5 +93,7 @@ kubectl apply -f openpdc-lower-level.yaml -n liqo-demo
 We check that the MySQL and the OpenPDC are up and running, offloaded on the remote cluster. However, if a subsequent scheduling process takes place (e.g., following a restart), a set of automatic policies attracts pods in the cluster where the PV is already created, thus, preventing the MySQL pod from being scheduled on another node. Consequently, multiple replicas of the MySQL database should be deployed on the two clusters to allow the PDC to migrate seamlessly. 
 Moreover, inside a k3s cluster, the data persistency is guaranteed by the Longhorn storage system, but in a multi-cluster environment like that introduced by FLUIDOS, Longhorn is not able to guarantee this property anymore. In a multi-cluster context, it is essential to consider new approaches which guarantee data persistency at an application level. In the Intelligent Power Grid Use Case, solutions to replicate data between multiple MySQL replicas will be considered. Tools currently under experimentation are MySQL Group Replication and Percona XtraDB Cluster which both provide a high-availability MySQL clustering solution that offers synchronous multi-master replication. 
 
-## License
+## License and Acknowledgments
 This project is licensed under the Apache License - version 2.0, see the [LICENSE](LICENSE) file for details.
+
+This project includes some previous work done by [Claudio Usai](https://github.com/claudious96) and [Claudio Lorina](https://github.com/claudiolor) as part of their master thesis at Politecnico di Torino.
