@@ -1,6 +1,6 @@
 # Intelligent Power Grid
 
-This document provides a brief introduction to the implementation of the Intelligent Power Grid use case testbed. Our goal is to install the demo within two Kubernetes clusters, each of which is running a single Kubernetes node on a virtual machine with 16GB of RAM, 8 vCPU and a fresh volume of Ubuntu 20.04 LTS. This guide is inspired by the [testbed](https://github.com/fluidos-project/node/blob/main/testbed/kind/README.md) provided in the [Node](https://github.com/fluidos-project/node/) repository.
+This document provides a brief introduction to the implementation of the Intelligent Power Grid use case testbed. Our goal is to install the demo within two FLUIDOS nodes **v0.1.0-rc.1**, each of which is running a single Kubernetes node on a virtual machine with 16GB of RAM, 8 vCPU and a fresh volume of Ubuntu 20.04 LTS. This guide is inspired by the [documentation](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/docs/installation/installation.md#manual-installation) provided in the [Node](https://github.com/fluidos-project/node/) repository.
 
 ## Requirements
 As software requirements, after updating and upgrading all the packages, we have to install Helm, Kubectl, Liqoctl and Longhorn. The first three are FLUIDOS requirements from the testbed while Longhorn is required by our application for internal-cluster data replication. Docker and KinD are not needed in this setup.
@@ -52,22 +52,25 @@ helm install longhorn longhorn/longhorn \
 --set defaultDataLocality="best-effort" \
 --version 1.3.2
 ```
-Then, apply the [storageclass](https://github.com/fluidos-project/intelligent-power-grid-use-case/tree/main/deploy/storageclass-lh.yaml)
+Then, apply the [storageclass](./deploy/storageclass-lh.yaml)
 ```
 kubectl apply -f deploy/storageclass-lh.yaml
 ```
 
 ## FLUIDOS Setup
-First, clone the FLUIDOS Node repository
+First, clone the FLUIDOS Node repository, carefully selecting the right version
 ```
-git clone https://github.com/fluidos-project/node.git
+wget https://github.com/fluidos-project/node/archive/refs/tags/v0.1.0-rc.1.zip
+unzip v0.1.0-rc.1.zip
+rm v0.1.0-rc.1.zip
+mv node-0.1.0-rc.1 node
 ```
-The file [setup.sh](https://github.com/fluidos-project/node/blob/main/testbed/kind/setup.sh), stored in `node/testbed/kind/setup.sh`, containes the instructions to install two worker nodes and one control plane with KinD. From it we extract the commands to setup a testbed with two K3s clusters, each one with a single node.
-In `cluster-multi-worker.yaml` name and labels are specified, thus on the **consumer** cluster we run
+The file [setup.sh](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/tools/scripts/setup.sh), stored in `node/tools/scripts/setup.sh`, containes the instructions to install two worker nodes and one control plane with KinD. From it we extract the commands to setup a testbed with two K3s clusters, each one with a single node.
+Name and labels must bepecified, thus on the consumer we run
 ```
 kubectl label nodes fluidos-consumer node-role.fluidos.eu/resources=true node-role.fluidos.eu/worker=true 
 ```
-while on the **provider** cluster
+while on the provider cluster
 ```
 kubectl label nodes fluidos-provider node-role.fluidos.eu/resources=true node-role.fluidos.eu/worker=true 
 ```
@@ -75,43 +78,41 @@ To check that the label is set correctly
 ```
 kubectl describe node fluidos-provider
 ```
-On both machines we run
+Then, on both machines we run
 ```
-kubectl apply -f node/deployments/node/crds
 export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
 helm repo add fluidos https://fluidos-project.github.io/node/
+helm repo update
 ```
-Then, on the **consumer** cluster
+Finally, on the **consumer** cluster
 ```
-helm install node fluidos/node -n fluidos \
-  --create-namespace -f node/testbed/kind/consumer/values.yaml \
-  --set networkManager.configMaps.nodeIdentity.ip="192.168.30.83:30000" \
-  --set networkManager.configMaps.providers.local="192.168.30.154:30001" \
-  --version 0.0.5
-
 liqoctl install k3s --cluster-name fluidos-consumer \
   --version v0.10.3 \
-  --set controllerManager.config.resourcePluginAddress=node-rear-controller-grpc.fluidos:2710 \
-  --set controllerManager.config.enableResourceEnforcement=true \
   --set storage.realStorageClassName=longhorn \
   --pod-cidr="10.48.0.0/16" \
   --service-cidr="10.50.0.0/16"
+  
+helm install node fluidos/node -n fluidos \
+  --create-namespace -f node/quickstart/utils/consumer-values.yaml \
+  --set networkManager.configMaps.nodeIdentity.ip="192.168.30.83:30000" \
+  --set networkManager.configMaps.providers.local="192.168.30.154:30001" \
+  --version 0.1.0-rc.1 \
+  --wait
 ```
 while on the **provider** cluster
 ```
-helm install node fluidos/node -n fluidos \
-  --create-namespace -f node/testbed/kind/provider/values.yaml \
-  --set networkManager.configMaps.nodeIdentity.ip="192.168.30.154:30001" \
-  --set networkManager.configMaps.providers.local="192.168.30.83:30000" \
-  --version 0.0.5
-
 liqoctl install k3s --cluster-name fluidos-provider \
   --version v0.10.3 \
-  --set controllerManager.config.resourcePluginAddress=node-rear-controller-grpc.fluidos:2710 \
-  --set controllerManager.config.enableResourceEnforcement=true \
   --set storage.realStorageClassName=longhorn \
   --pod-cidr="10.58.0.0/16" \
   --service-cidr="10.60.0.0/16"
+  
+helm install node fluidos/node -n fluidos \
+  --create-namespace -f node/quickstart/utils/provider-values.yaml \
+  --set networkManager.configMaps.nodeIdentity.ip="192.168.30.154:30001" \
+  --set networkManager.configMaps.providers.local="192.168.30.83:30000" \
+  --version 0.1.0-rc.1 \
+  --wait
 ```
 To check the installation status
 ```
@@ -147,7 +148,7 @@ And then offload the namespace (since the operator must run on the consumer clus
 ```
 liqoctl offload namespace lower --namespace-mapping-strategy EnforceSameName
 ```
-Now one should modify the `deploy/cr.yaml` setting the appropriate configurations. For convenience, we save a copy of the [already configured](https://github.com/fluidos-project/intelligent-power-grid-use-case/tree/main/deploy/cr.yaml) file in this repository.
+Now one should modify the `deploy/cr.yaml` setting the appropriate configurations. For convenience, we save a copy of the [already configured](./deploy/cr.yaml) file in this repository.
 ```
 kubectl apply -f deploy/cr.yaml -n lower
 ```
