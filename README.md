@@ -65,7 +65,7 @@ unzip v0.1.0-rc.1.zip
 rm v0.1.0-rc.1.zip
 mv node-0.1.0-rc.1 node
 ```
-The file [setup.sh](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/tools/scripts/setup.sh), stored in `node/tools/scripts/setup.sh`, containes the instructions to install two worker nodes and one control plane with KinD. From it we extract the commands to setup a testbed with two K3s clusters, each one with a single node.
+The file [setup.sh](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/tools/scripts/setup.sh), stored in `node/tools/scripts/setup.sh`, contains the instructions to install two worker nodes and one control plane with KinD. From it we extract the commands to setup a testbed with two K3s clusters, each one with a single node.
 Name and labels must bepecified, thus on the consumer we run
 ```
 kubectl label nodes fluidos-consumer node-role.fluidos.eu/resources=true node-role.fluidos.eu/worker=true 
