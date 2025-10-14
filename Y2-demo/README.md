@@ -1,6 +1,6 @@
-# Intelligent Power Grid
+# Intelligent Power Grid Y2 Demo
 
-This document provides a brief introduction to the implementation of the Intelligent Power Grid use case testbed. Our goal is to install the demo within two FLUIDOS nodes **v0.1.0-rc.1**, each of which is running a single Kubernetes node on a virtual machine with 16GB of RAM, 8 vCPU and a fresh volume of Ubuntu 20.04 LTS. This guide is inspired by the [documentation](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/docs/installation/installation.md#manual-installation) provided in the [Node](https://github.com/fluidos-project/node/) repository.
+This document provides a brief introduction to the implementation of the Intelligent Power Grid use case testbed for Y2 Demo. Our goal is to install the demo within two FLUIDOS nodes **v0.1.0-rc.1**, each of which is running a single Kubernetes node on a virtual machine with 16GB of RAM, 8 vCPU and a fresh volume of Ubuntu 20.04 LTS. This guide is inspired by the [documentation](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/docs/installation/installation.md#manual-installation) provided in the [Node](https://github.com/fluidos-project/node/) repository.
 
 ## Requirements
 As software requirements, after updating and upgrading all the packages, we have to install Helm, Kubectl, Liqoctl and Longhorn. The first three are FLUIDOS requirements from the testbed while Longhorn is required by our application for internal-cluster data replication. Docker and KinD are not needed in this setup.
