@@ -108,7 +108,7 @@ echo "CRD available!"
 helm upgrade --install node fluidos/node \
     -n fluidos --version "0.1.1" \
     --create-namespace -f node/quickstart/utils/provider-values.yaml \
-    --set networkManager.configMaps.nodeIdentity.ip="172.25.118.88" \
+    --set networkManager.configMaps.nodeIdentity.ip="172.25.xx.xx" \
     --set rearController.service.gateway.nodePort.port="30001" \
     --set networkManager.config.enableLocalDiscovery=true \
     --set networkManager.config.address.thirdOctet="2" \
