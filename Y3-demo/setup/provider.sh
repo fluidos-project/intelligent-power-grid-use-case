@@ -1,15 +1,16 @@
 #!/bin/bash
 
+
 K3S_VERSION="v1.24.17+k3s1"
 LIQO_VERSION="v0.10.3"
 FLUIDOS_VERSION="0.1.1"
 HELM_REPO_LONGHORN="https://charts.longhorn.io"
 HELM_REPO_FLUIDOS="https://fluidos-project.github.io/node/"
 
-# k3s Installation
+# K3s Installation
 sudo rm -f /run/cni/dhcp.sock
-echo "Installing k3s on consumer..."
-sudo curl -sfL https://get.k3s.io | K3S_NODE_NAME=cloud INSTALL_K3S_VERSION=$K3S_VERSION K3S_TOKEN=politorse sh -s - server --cluster-init --kube-apiserver-arg="default-not-ready-toleration-seconds=20" --kube-apiserver-arg="default-unreachable-toleration-seconds=20" --write-kubeconfig-mode 644 --cluster-cidr="10.48.0.0/16" --service-cidr="10.50.0.0/16"
+echo "Installing K3s on provider..."
+curl -sfL https://get.k3s.io | K3S_NODE_NAME=edge2 INSTALL_K3S_VERSION=v1.24.17+k3s1 K3S_TOKEN=politorse sh -s - server --cluster-init --kube-apiserver-arg="default-not-ready-toleration-seconds=20" --kube-apiserver-arg="default-unreachable-toleration-seconds=20" --write-kubeconfig-mode 644 --cluster-cidr="10.68.0.0/16" --service-cidr="10.70.0.0/16"
 if [ $? -ne 0 ]; then
     echo "Error during k3s installation. Exiting."
     exit 1
@@ -25,21 +26,14 @@ while [[ $(kubectl get nodes --no-headers 2>/dev/null | awk '{print $2}') != "Re
     sleep 2
 done
 # Node label
-kubectl label nodes cloud node-role.fluidos.eu/resources=true node-role.fluidos.eu/worker=true
+kubectl label nodes edge2 node-role.fluidos.eu/resources=true node-role.fluidos.eu/worker=true
 if [ $? -ne 0 ]; then
     echo "Node labeling error. Exiting."
     exit 1
 fi
-# Modify ConfigMap CoreDNS to use internal DNS 
-# kubectl -n kube-system patch configmap coredns \
-#   --type merge \
-#   -p '{"data":{"Corefile":".:53 {\n    errors\n    health\n    ready\n    kubernetes cluster.local in-addr.arpa ip6.arpa {\n       pods insecure\n       fallthrough in-addr.arpa ip6.arpa\n    }\n    forward . 172.25.120.7\n    cache 30\n    loop\n    reload\n    loadbalance\n}"}}'
+export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
 
-# Restarting CoreDNS to apply the change.
-# kubectl -n kube-system rollout restart deployment coredns
-
-
-# Longhorn installaion
+#  Longhorn Installation
 cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
 if [ $? -ne 0 ]; then
     echo "Error copying K3s configuration file. Exiting."
@@ -76,7 +70,7 @@ fi
 
 kubectl apply -f liqo/deploy/storageclass.yaml
 if [ $? -ne 0 ]; then
-    echo "Error applying Liqo storage class. Exiting."
+    echo "Error applying Liqo storage class. Exiting"
     exit 1
 fi
 
@@ -93,7 +87,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-liqoctl install k3s --cluster-name cloud --version $LIQO_VERSION --pod-cidr="10.48.0.0/16" --service-cidr="10.50.0.0/16" --set storage.realStorageClassName=longhorn
+liqoctl install k3s --cluster-name edge2 --version $LIQO_VERSION --pod-cidr="10.68.0.0/16" --service-cidr="10.70.0.0/16" --set storage.realStorageClassName=longhorn
 if [ $? -ne 0 ]; then
     echo "Error installing Liqo. Exiting."
     exit 1
@@ -113,11 +107,11 @@ echo "CRD available!"
 
 helm upgrade --install node fluidos/node \
     -n fluidos --version "0.1.1" \
-    --create-namespace -f node/quickstart/utils/consumer-values.yaml \
-    --set networkManager.configMaps.nodeIdentity.ip="172.25.xx.xx" \
-    --set rearController.service.gateway.nodePort.port="30000" \
+    --create-namespace -f node/quickstart/utils/provider-values.yaml \
+    --set networkManager.configMaps.nodeIdentity.ip="172.25.118.88" \
+    --set rearController.service.gateway.nodePort.port="30001" \
     --set networkManager.config.enableLocalDiscovery=true \
-    --set networkManager.config.address.thirdOctet="1" \
+    --set networkManager.config.address.thirdOctet="2" \
     --set networkManager.config.netInterface="eno1" \
     --wait \
     --debug \
@@ -126,7 +120,8 @@ if [ $? -ne 0 ]; then
     echo "Error upgrading FLUIDOS node. Exiting."
     exit 1
 fi
-kubectl get flavor -n fluidos --no-headers --kubeconfig /etc/rancher/k3s/k3s.yaml | cut -f1 -d\  | xargs -I% kubectl patch flavor/%  --patch-file ./flavors-cao-mi.yaml --type merge -n fluidos --kubeconfig /etc/rancher/k3s/k3s.yaml
+
+kubectl get flavor -n fluidos --no-headers --kubeconfig /etc/rancher/k3s/k3s.yaml | cut -f1 -d\  | xargs -I% kubectl patch flavor/%  --patch-file ./flavors-cao-rm.yaml --type merge -n fluidos --kubeconfig /etc/rancher/k3s/k3s.yaml
 # registries.yaml configuration
 echo "Configuration of registry mirror..."
 sudo tee /etc/rancher/k3s/registries.yaml > /dev/null <<EOL
@@ -152,11 +147,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-
 echo "Waiting  K3s to be active..."
 while ! systemctl is-active --quiet k3s; do
     sleep 2
 done
 echo "K3s active!"
-
 echo "Installation complete!"
