@@ -30,14 +30,6 @@ if [ $? -ne 0 ]; then
     echo "Node labeling error. Exiting."
     exit 1
 fi
-# Modify ConfigMap CoreDNS to use internal DNS 
-# kubectl -n kube-system patch configmap coredns \
-#   --type merge \
-#   -p '{"data":{"Corefile":".:53 {\n    errors\n    health\n    ready\n    kubernetes cluster.local in-addr.arpa ip6.arpa {\n       pods insecure\n       fallthrough in-addr.arpa ip6.arpa\n    }\n    forward . 172.25.120.7\n    cache 30\n    loop\n    reload\n    loadbalance\n}"}}'
-
-# Restarting CoreDNS to apply the change.
-# kubectl -n kube-system rollout restart deployment coredns
-
 
 # Longhorn installaion
 cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
