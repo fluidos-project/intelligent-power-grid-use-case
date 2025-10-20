@@ -68,7 +68,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-kubectl apply -f liqo/deploy/storageclass.yaml
+kubectl apply -f ../deploy/storageclass.yaml
 if [ $? -ne 0 ]; then
     echo "Error applying Liqo storage class. Exiting"
     exit 1
@@ -93,7 +93,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-kubectl apply -f liqo/deploy/multus.yaml -n kube-system
+kubectl apply -f ../deploy/multus.yaml -n kube-system
 if [ $? -ne 0 ]; then
     echo "Error applying Multus. Exiting."
     exit 1
