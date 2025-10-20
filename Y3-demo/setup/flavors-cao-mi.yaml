@@ -1,0 +1,15 @@
+spec:
+  location:
+    city: Milan
+    country: Italy
+    latitude: "45.4653"
+    longitude: "9.1559"
+  flavorType:
+    typeData:
+      properties:
+        carbon-footprint:
+          embodied: 53000
+          operational: [359, 353, 347, 350, 359, 364, 371, 360, 362, 363, 369, 344, 337, 335, 338, 336, 341, 343, 350, 365, 381, 374, 366, 352]
+  owner:
+    domain: mi.fluidos.eu
+
