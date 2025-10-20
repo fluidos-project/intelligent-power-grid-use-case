@@ -1,0 +1,140 @@
+apiVersion: fluidos.eu/v1
+kind: FLUIDOSDeployment
+metadata:
+  name: openpdc-lower
+spec:
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: openpdc-lower
+    annotations:
+      fluidos-intent-latency: "100"
+#      fluidos-intent-location: "Rome"
+    labels:
+      app: openpdc-low
+  spec:
+    selector:
+      matchLabels:
+        app: openpdc-low
+    template:
+      metadata:
+        labels:
+          app: openpdc-low
+        annotations:
+          liqo.io/api-server-support: "remote"
+          liqo.io/remote-service-account-name: "flavor-reader"
+      spec:
+        serviceAccountName: flavor-reader
+        initContainers:
+        - name: openpdc-init
+          image: riccardo170697/test-openpdc-init:13
+          env:
+            - name: DB_ROOTPASS
+              valueFrom:
+                secretKeyRef:
+                  name: cluster1-secrets
+                  key: root
+            - name: DB_USER
+              value: openpdc
+            - name: DB_PASS
+              value: password
+            - name: DB_NAME
+              value: lower
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_URL
+              value: cluster1-haproxy.lower.svc.cluster.local
+            - name: SAMPLE_DATASET
+              value: "true"
+          resources:
+            requests:
+              memory: 250M
+              cpu: 800m
+            limits:
+              memory: 300M
+              cpu: 900m
+        containers:
+        - name: openpdc
+          image: claudious96/openpdc:latest
+          env:
+            - name: DB_USER
+              value: openpdc
+            - name: DB_PASS
+              value: password
+            - name: DB_NAME
+              value: lower
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_URL
+              value: cluster1-haproxy.lower.svc.cluster.local
+            - name: NODE_ID
+              value: e7a5235d-cb6f-4864-a96e-a8686f36e599
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - liveness.sh
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          ports:
+            - name: outputstream
+              containerPort: 4712
+              protocol: TCP
+            - name: datapublisher
+              containerPort: 6165
+              protocol: TCP
+            - name: console
+              containerPort: 8500
+              protocol: TCP
+          resources:
+            requests:
+              memory: 250M
+              cpu: 800m
+            limits:
+              memory: 300M
+              cpu: 900m
+        - name: ping-sidecar
+          image: docker.io/myregistry/ping-sidecar2:latest
+          imagePullPolicy: Never
+          env:
+            - name: HOST
+              value: "172.25.118.89"
+            - name: PUSHGATEWAY_URL
+              value: "172.25.118.89:9091"
+            - name: INTERVAL
+              value: "10"
+            - name: FALLBACK_VALUE
+              value: "400"
+            - name: SWITCH_AFTER
+              value: "350"
+            - name: FLAVOR_NAMESPACE
+              value: "fluidos"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openpdc-low
+spec:
+  type: NodePort
+  ports:
+    - name: console
+      port: 8500
+      targetPort: 8500
+      nodePort: 30085
+    - name: outputstream
+      port: 4712
+      nodePort: 30099
+    - name: datapublisher
+      port: 6165
+      targetPort: 6165
+      nodePort: 30065
+  selector:
+    app: openpdc-low
