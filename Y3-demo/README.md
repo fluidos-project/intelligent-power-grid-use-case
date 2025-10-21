@@ -9,15 +9,15 @@ The demonstration highlights how orchestration intents (e.g. latency intents) ca
 
 The testbed includes:
 
-*Physical PMUs from the RSE DER-TF Facility are connected via optical fibers to the RSE IoT & Big Data Laboratory.
+* Physical PMUs from the RSE DER-TF Facility are connected via optical fibers to the RSE IoT & Big Data Laboratory.
 
-*Three Linux-based servers hosted in the RSE IoT & Big Data Lab operate as FLUIDOS nodes, forming a computing continuum.
+* Three Linux-based servers hosted in the RSE IoT & Big Data Lab operate as FLUIDOS nodes, forming a computing continuum.
 
-*A Percona XtraDB Cluster is used for distributed configuration storage.
+* A Percona XtraDB Cluster is used for distributed configuration storage.
 
-*FLUIDOS MIMO (Model-based and Intent-driven Meta-Orchestrator), along with Prometheus and Pushgateway for monitoring and metrics collection.
+* FLUIDOS MIMO (Model-based and Intent-driven Meta-Orchestrator), along with Prometheus and Pushgateway for monitoring and metrics collection.
 
-*Phasor Data Concentrator (PDC) applications and a Ping Sidecar service.
+* Phasor Data Concentrator (PDC) applications and a Ping Sidecar service.
 
 
 
