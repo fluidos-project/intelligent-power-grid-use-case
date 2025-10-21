@@ -15,6 +15,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ping_sidecar2.py .
+COPY ping_sidecar.py .
 
 CMD ["python", "ping_sidecar.py"]

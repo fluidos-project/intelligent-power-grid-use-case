@@ -1,38 +1,75 @@
 # Intelligent Power Grid Y3 Demo
 
-### Objectives
+## Objectives
 
 The Year 3 Intelligent Power Grid Use Case Demonstration leverages the intent-based orchestration across the FLUIDOS computing continuum.
 This demonstration focuses on the FLUIDOS Model-based and Intent-driven Meta-Orchestrator (MIMO) component, which enables dynamic and context-aware workload management based on high-level user intents.
 
 The demonstration highlights how orchestration intents (e.g. latency constraints) can be automatically translated into concrete deployment actions, optimizing workload placement across distributed nodes. In the Intelligent Power Grid context, this capability ensures that Phasor Data Concentrator (PDC) workloads are deployed considering ICT network quality, achieving low latency in PMU data collection and resilient control-loop operations.
 
----
-
-### Components
-
 The testbed includes:
 
-* Physical PMUs of the RSE DER-TF Facility connected via optical fibers to the RSE IoT & Big Data Laboratory.
-* Three Linux-based servers hosted in RSE IoT & BigData Lab running as FLUIDOS nodes (each hosting k3s, Longhorn) and forming a FLUIDOS computing continuum (one consumer and two providers).
-* Phasor Data Concentrator (PDC) applications (lower-level and higher-leve)
-* Percona XtraDB Cluster application and Longhorn for distributed configuration storage
-* FLUIDOS MIMO (Model-based and Intent-driven Meta-Orchestrator) and Prometheus and PushGateway Docker containers on the consumer FLUIDOS node
-* Ping-Push PDC sidecar container
+* Physical PMUs of the RSE DER-TF Facility connected via optical fibers to the RSE IoT & Big Data Laboratory
+* Three Linux-based servers hosted in RSE IoT & BigData Lab running as FLUIDOS nodes (each hosting k3s, Longhorn, Liqo and Multus) and forming a FLUIDOS computing continuum (one consumer and two providers)
+* Phasor Data Concentrator (PDC) applications (lower-level and higher-level)
+* Percona XtraDB Cluster application for distributed configuration storage
+* FLUIDOS MIMO (Model-based and Intent-driven Meta-Orchestrator) and Prometheus and Push Gateway Docker containers on the consumer FLUIDOS node
+* Ping sidecar container.
 
 ---
+
+## Setup
 
 ### Requirements
 
 * python >= 3.11
 * Docker
 
----
-
-### Setup
+### FLUIDOS Node
 
 On each machine run the scripts consumer.sh, provider.sh, and provider2.sh respectively.
 The scripts will install K3s, Liqo, FLUIDOS, Multus, and Longhorn, and add Location, Latency and Carbon Emission data on the three FLUIDOS nodes flavors. The scripts also add some configuration changes to K3s to reach the internal GitLab registry. 
+
+Generate peerings using the command:
+
+```
+liqo generate peer-command
+```
+
+## Percona Operator for MySQL
+In order to guarantee cross-cluster volumes replication and data persisentcy, we follow [this guide](https://docs.percona.com/legacy-documentation/percona-operator-for-mysql-pxc/percona-kubernetes-operator-for-pxc-1.11.0.pdf) to install the Percona Operator for MySQL based on Percona XtraDB Cluster. First, clone the repository
+```
+git clone -b v1.11.0 https://github.com/percona/percona-xtradb-cluster-operator
+cd percona-xtradb-cluster-operator/
+```
+Install the operator
+```
+kubectl apply -f deploy/crd.yaml
+kubectl create namespace lower
+kubectl apply -f deploy/rbac.yaml -n lower
+kubectl apply -f deploy/operator.yaml -n lower
+```
+And then offload the namespace (since the operator must run on the consumer cluster, we apply it before offloading the namespace, otherwise we should modify the operator.yaml file to add a nodeSelector rule)
+```
+liqoctl offload namespace lower --namespace-mapping-strategy EnforceSameName
+```
+Now one should modify the `deploy/cr.yaml` setting the appropriate configurations. For convenience, we save a copy of the [already configured](./deploy/cr.yaml) file in this repository.
+```
+kubectl apply -f deploy/cr.yaml -n lower
+```
+Use the following command to retrieve the root password of the database (if using the default secret)
+```
+kubectl get secret cluster1-secrets -n lower --template='{{.data.root | base64decode}}{{"\n"}}'
+```
+Launch a mysql-client to verify that the previous configuration changes have been patched correctly, and in case set the corresponding variables
+```
+kubectl run mysql-client --image=mysql:latest -it --rm --restart=Never -- /bin/bash
+mysql -h cluster1-haproxy.lower.svc.cluster.local -uroot -proot_password
+SHOW VARIABLES LIKE 'auto_increment_increment';
+SET GLOBAL auto_increment_increment=1;
+```
+
+### Model-based and Intent-driven Meta-Orchestrator
 
 Install the Prometheus and Push Gateway Docker containers on the consumer node:
 
@@ -107,9 +144,34 @@ Then run the MIMO orchestrator:
 sudo python3 -m kopf run --verbose -m fluidos_model_orchestrator -A
 ```
 
-### Intent Definition and Sequence
+## Ping sidecar container image
 
-1. The orchestration intent is defined in the lower-level PDC YAML file:
+The following commands build the `ping-sidecar` image, save it as a `.tar` archive, and import it into the k3s container runtime:
+
+```
+sudo docker build -t myregistry/ping-sidecar:latest . && \
+sudo docker save myregistry/ping-sidecar2 -o ./ping-sidecar.tar && \
+sudo k3s ctr image import ping-sidecar.tar
+```
+
+## PDC
+Finally, we can apply from the consumer the OpenPDC application with the command
+```
+kubectl apply -f deploy/openpdc-lower-level-y3.yaml -n lower
+```
+To connect the [OpenPDC Manager](https://github.com/GridProtectionAlliance/openPDC/releases/tag/v2.4) GUI with the orchestrated backend, obtain the NodePort of the database with the command
+```
+kubectl describe svc cluster1-haproxy-replicas -n lower
+```
+and use it to connect with the cluster enabling port-forwarding with a command like
+```
+ssh -L 3306:localhost:NodePort -L 8500:localhost:30085 -L 6165:localhost:30065 user@kubernetes-node
+```
+
+
+### Intent Definition and Scenario
+
+1. The orchestration intent is defined in the openpdc-lower-level-y3.yaml PDC YAML file:
 
    ```yaml
    fluidos-intent-latency: 100

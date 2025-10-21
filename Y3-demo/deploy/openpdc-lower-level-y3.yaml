@@ -94,7 +94,7 @@ spec:
               memory: 300M
               cpu: 900m
         - name: ping-sidecar
-          image: docker.io/myregistry/ping-sidecar2:latest
+          image: docker.io/myregistry/ping-sidecar:latest
           imagePullPolicy: Never
           env:
             - name: HOST
