@@ -113,7 +113,7 @@ metadata:
 data:
   UPDATE_FLAVORS: "False"
   UPDATE_FLAVORS_INTERVAL: "360"
-  ELECTRICITY_MAP_API_KEY: "REbFju22LwHPVT3t1Y0IKh1I"
+  ELECTRICITY_MAP_API_KEY: "xxx"
   architecture: "amd64"
   MSPL_ENDPOINT: "http://fluidos-mspl.sl.cloud9.ibm.com:8002/meservice"
   monitor_enabled: "True"
