@@ -3,20 +3,23 @@
 ## Objectives
 
 The Year 3 Intelligent Power Grid Use Case Demonstration leverages the intent-based orchestration across the FLUIDOS computing continuum.
-This demonstration focuses on the FLUIDOS Model-based and Intent-driven Meta-Orchestrator (MIMO) component, which enables dynamic and context-aware workload management based on high-level user intents.
+This demonstration focuses on the FLUIDOS Model-based and Intent-driven Meta-Orchestrator (MIMO) component, which enables dynamic workload management based on high-level user intents.
 
-The demonstration highlights how orchestration intents (e.g. latency constraints) can be automatically translated into concrete deployment actions, optimizing workload placement across distributed nodes. In the Intelligent Power Grid context, this capability ensures that Phasor Data Concentrator (PDC) workloads are deployed considering ICT network quality, achieving low latency in PMU data collection and resilient control-loop operations.
+The demonstration highlights how orchestration intents (e.g. latency intents) can be automatically translated into concrete deployment actions, optimizing workload placement across distributed FLUIDOS nodes. In the Intelligent Power Grid context, this capability ensures that Phasor Data Concentrator (PDC) workloads are deployed considering ICT network quality, achieving low latency in PMU data collection and resilient control-loop operations.
 
 The testbed includes:
 
-* Physical PMUs of the RSE DER-TF Facility connected via optical fibers to the RSE IoT & Big Data Laboratory
-* Three Linux-based servers hosted in RSE IoT & BigData Lab running as FLUIDOS nodes (each hosting k3s, Longhorn, Liqo and Multus) and forming a FLUIDOS computing continuum (one consumer and two providers)
-* Phasor Data Concentrator (PDC) applications (lower-level and higher-level)
-* Percona XtraDB Cluster application for distributed configuration storage
-* FLUIDOS MIMO (Model-based and Intent-driven Meta-Orchestrator) and Prometheus and Push Gateway Docker containers on the consumer FLUIDOS node
-* Ping sidecar container.
+*Physical PMUs from the RSE DER-TF Facility are connected via optical fibers to the RSE IoT & Big Data Laboratory.
 
----
+*Three Linux-based servers hosted in the RSE IoT & Big Data Lab operate as FLUIDOS nodes, forming a computing continuum.
+
+*A Percona XtraDB Cluster is used for distributed configuration storage.
+
+*FLUIDOS MIMO (Model-based and Intent-driven Meta-Orchestrator), along with Prometheus and Pushgateway for monitoring and metrics collection.
+
+*Phasor Data Concentrator (PDC) applications and a Ping Sidecar service.
+
+
 
 ## Setup
 
@@ -27,10 +30,10 @@ The testbed includes:
 
 ### FLUIDOS Node
 
-On each machine run the scripts consumer.sh, provider.sh, and provider2.sh respectively.
+On each machine run the scripts consumer.sh, provider.sh, and provider2.sh respectively to install one FLUIDOS consumer and two FLUIDOS providers.
 The scripts will install K3s, Liqo, FLUIDOS, Multus, and Longhorn, and add Location, Latency and Carbon Emission data on the three FLUIDOS nodes flavors. The scripts also add some configuration changes to K3s to reach the internal GitLab registry. 
 
-Generate peerings using the command:
+Manually generate peerings using the command:
 
 ```
 liqo generate peer-command
@@ -154,7 +157,7 @@ sudo docker save myregistry/ping-sidecar2 -o ./ping-sidecar.tar && \
 sudo k3s ctr image import ping-sidecar.tar
 ```
 
-## PDC
+## PDC and Ping sidecar
 Finally, we can apply from the consumer the OpenPDC application with the command
 ```
 kubectl apply -f deploy/openpdc-lower-level-y3.yaml -n lower
@@ -167,7 +170,12 @@ and use it to connect with the cluster enabling port-forwarding with a command l
 ```
 ssh -L 3306:localhost:NodePort -L 8500:localhost:30085 -L 6165:localhost:30065 user@kubernetes-node
 ```
+We can also apply the OpenPDC higher level application on the consumer node: 
 
+```
+kubectl apply -f deploy/openpdc-higher-level.yaml -n higher
+```
+Then we can use the GUI to configure the PMUs' connection and output streams forming a hierarchical architecture.
 
 ### Intent Definition and Scenario
 
