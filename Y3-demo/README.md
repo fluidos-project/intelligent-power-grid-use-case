@@ -20,26 +20,29 @@ The testbed includes:
 * FLUIDOS MIMO (Model-based and Intent-driven Meta-Orchestrator) and Prometheus and PushGateway Docker containers on the consumer FLUIDOS node
 * Ping-Push PDC sidecar container
 
+---
+
 ### Requirements
 
 * python >= 3.11
 * Docker
+
+---
 
 ### Setup
 
 On each machine run the scripts consumer.sh, provider.sh, and provider2.sh respectively.
 The scripts will install K3s, Liqo, FLUIDOS, Multus, and Longhorn, and add Location, Latency and Carbon Emission data on the three FLUIDOS nodes flavors. The scripts also add some configuration changes to K3s to reach the internal GitLab registry. 
 
-
-To install the Prometheus and PushGateway Docker containers:
+Install the Prometheus and Push Gateway Docker containers on the consumer node:
 
 ```
-docker create netwrok monitoring
+docker create network monitoring
 docker run -d -p 9091:9091 --network monitoring --name pushgateway prom/pushgateway
 docker run -it -v $PWD/config:/etc/prometheus -p 9090:9090 --network monitoring --rm prom/prometheus:main
 ```
 
-To run FLUIDOS MIMO in the consumer node:
+Run FLUIDOS MIMO in the consumer node:
 clone the repository available at: https://github.com/fluidos-project/fluidos-modelbased-metaorchestrator
 
 The operator assumes the following to be available within the system:
