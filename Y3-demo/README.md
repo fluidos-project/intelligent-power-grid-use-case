@@ -71,8 +71,18 @@ kind: ConfigMap
 metadata:
   name: fluidos-mbmo-configmap
 data:
-  ELECTRICITY_MAP_API_KEY: xxxxxxxxx
+  UPDATE_FLAVORS: "False"
+  UPDATE_FLAVORS_INTERVAL: "360"
+  ELECTRICITY_MAP_API_KEY: "REbFju22LwHPVT3t1Y0IKh1I"
+  architecture: "amd64"
   MSPL_ENDPOINT: "http://fluidos-mspl.sl.cloud9.ibm.com:8002/meservice"
+  monitor_enabled: "True"
+  monitor_interval: "2"
+  prometeus_endpoint: "http://localhost:9090"
+  MONITOR_CONTRACTS: "False"
+  SKIP_PEERING: "True"
+  HOST_MAPPING: "vr.fluidos.eu:2b2c5c29-cbcd-451d-a231-acc5806b302d;rm.fluidos.eu:d93276fe-14ad-4921-9fb1-a6305bfbaac5"
+
 ```
 ```
 kubectl apply -f fluidos-modelbased-metaorchestrator/mbmo-config-map.yaml -n fluidos
