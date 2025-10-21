@@ -1,7 +1,5 @@
 # Intelligent Power Grid Y3 Demo
 
-## Intelligent Power Grid with Intent-based Orchestration
-
 ### Objectives
 
 The Year 3 Intelligent Power Grid Use Case Demonstration leverages the intent-based orchestration across the FLUIDOS computing continuum.
