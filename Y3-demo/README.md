@@ -25,12 +25,12 @@ The testbed includes:
 
 ### Requirements
 
-* python >= 3.11
-* Docker
+* Python >= 3.11
+* Docker >= 20
 
 ### FLUIDOS Node
 
-On each machine run the scripts consumer.sh, provider.sh, and provider2.sh respectively to install one FLUIDOS consumer and two FLUIDOS providers.
+On each server run the setup scripts [consumer.sh](./setup/consumer.sh), [provider.sh](./setup/provider.sh), and [provider.sh](./setup/provider2.sh) respectively to install one FLUIDOS consumer and two FLUIDOS providers.
 The scripts will install K3s, Liqo, FLUIDOS, Multus, and Longhorn, and add Location, Latency and Carbon Emission data on the three FLUIDOS nodes flavors. The scripts also add some configuration changes to K3s to reach the internal GitLab registry. 
 
 Manually generate peerings using the command:
@@ -39,7 +39,7 @@ Manually generate peerings using the command:
 liqo generate peer-command
 ```
 
-## Percona Operator for MySQL
+### Percona Operator for MySQL
 In order to guarantee cross-cluster volumes replication and data persisentcy, we follow [this guide](https://docs.percona.com/legacy-documentation/percona-operator-for-mysql-pxc/percona-kubernetes-operator-for-pxc-1.11.0.pdf) to install the Percona Operator for MySQL based on Percona XtraDB Cluster. First, clone the repository
 ```
 git clone -b v1.11.0 https://github.com/percona/percona-xtradb-cluster-operator
@@ -127,7 +127,7 @@ data:
 ```
 kubectl apply -f fluidos-modelbased-metaorchestrator/mbmo-config-map.yaml -n fluidos
 ```
-In /fluidos-modelbased-metaorchestrator/utils/prometheus/config/prometheus.yml add address of the pushgateway.
+Configure the /fluidos-modelbased-metaorchestrator/utils/prometheus/config/prometheus.yml file as follows:
 
 ```
 global:
@@ -147,17 +147,21 @@ Then run the MIMO orchestrator:
 sudo python3 -m kopf run --verbose -m fluidos_model_orchestrator -A
 ```
 
-## Ping sidecar container image
+### Ping sidecar container image
 
-The following commands build the `ping-sidecar` image, save it as a `.tar` archive, and import it into the k3s container runtime:
+On each node use following commands to build the `ping-sidecar` image, save it as a `.tar` archive, and import it into the k3s container runtime:
 
 ```
 sudo docker build -t myregistry/ping-sidecar:latest . && \
 sudo docker save myregistry/ping-sidecar2 -o ./ping-sidecar.tar && \
 sudo k3s ctr image import ping-sidecar.tar
 ```
+Run on the consumer node:
+```
+kubectl apply -f deploy/flavor-reader-rbac.yaml 
+```
 
-## PDC and Ping sidecar
+### PDC
 Finally, we can apply from the consumer the OpenPDC application with the command
 ```
 kubectl apply -f deploy/openpdc-lower-level-y3.yaml -n lower
@@ -177,7 +181,9 @@ kubectl apply -f deploy/openpdc-higher-level.yaml -n higher
 ```
 Then we can use the GUI to configure the PMUs' connection and output streams forming a hierarchical architecture.
 
-### Intent Definition and Scenario
+## Intent Definition and Scenario
+
+The scenario is described as follows:
 
 1. The orchestration intent is defined in the openpdc-lower-level-y3.yaml PDC YAML file:
 
@@ -189,11 +195,11 @@ Then we can use the GUI to configure the PMUs' connection and output streams for
 
 2. When the lower-level PDC is launched, MIMO evaluates the available providers:
 
-   * Provider 1 (rm.fluidos.eu):** latency 80 ms
-   * Provider 2 (vr.fluidos.eu):** latency 90 ms
+   * Provider 1 (rm.fluidos.eu): latency 80 ms
+   * Provider 2 (vr.fluidos.eu): latency 90 ms
      Both satisfy the declared intent, and MIMO selects one provider for PDC deployment.
 
-3. The sidecar container continuously measures round-trip time (RTT) using ICMP probes.
+3. The Ping sidecar container continuously measures round-trip time (RTT) using ICMP probes and sends data to MIMO's Prometheus.
 
    * Latency samples are aggregated (last 10 measurements) to assess compliance with the declared intent.
    * If latency remains within threshold, no action is taken.
@@ -204,7 +210,7 @@ Then we can use the GUI to configure the PMUs' connection and output streams for
    * Since it no longer meets the latency constraint, MIMO automatically reschedules the PDC workload to Provider 2.
 
 
-This sequence demonstrates the self-adaptive and intent-driven orchestration capability of MIMO.
+This sequence demonstrates the intent-driven orchestration capability of MIMO.
 
 ---
 
