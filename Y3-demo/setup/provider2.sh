@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 K3S_VERSION="v1.24.17+k3s1"
 LIQO_VERSION="v0.10.3"
 FLUIDOS_VERSION="0.1.1"
@@ -25,15 +24,16 @@ echo "Waiting for the node to be ready"
 while [[ $(kubectl get nodes --no-headers 2>/dev/null | awk '{print $2}') != "Ready" ]]; do
     sleep 2
 done
+
 # Node label
 kubectl label nodes edge2 node-role.fluidos.eu/resources=true node-role.fluidos.eu/worker=true
 if [ $? -ne 0 ]; then
     echo "Node labeling error. Exiting."
     exit 1
 fi
-export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
 
 #  Longhorn Installation
+export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
 cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
 if [ $? -ne 0 ]; then
     echo "Error copying K3s configuration file. Exiting."
@@ -108,7 +108,7 @@ echo "CRD available!"
 helm upgrade --install node fluidos/node \
     -n fluidos --version "0.1.1" \
     --create-namespace -f node/quickstart/utils/provider-values.yaml \
-    --set networkManager.configMaps.nodeIdentity.ip="172.25.xx.xx" \
+    --set networkManager.configMaps.nodeIdentity.ip="IP_CONSUMER2" \
     --set rearController.service.gateway.nodePort.port="30001" \
     --set networkManager.config.enableLocalDiscovery=true \
     --set networkManager.config.address.thirdOctet="2" \
@@ -122,6 +122,7 @@ if [ $? -ne 0 ]; then
 fi
 
 kubectl get flavor -n fluidos --no-headers --kubeconfig /etc/rancher/k3s/k3s.yaml | cut -f1 -d\  | xargs -I% kubectl patch flavor/%  --patch-file ./flavors-cao-vr.yaml --type merge -n fluidos --kubeconfig /etc/rancher/k3s/k3s.yaml
+
 # registries.yaml configuration
 echo "Configuration of registry mirror..."
 sudo tee /etc/rancher/k3s/registries.yaml > /dev/null <<EOL

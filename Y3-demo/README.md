@@ -9,7 +9,7 @@ The demonstration highlights how orchestration intents (e.g. latency intents) ca
 
 The testbed includes:
 
-* Physical PMUs from the RSE DER-TF Facility are connected via optical fibers to the RSE IoT & Big Data Laboratory.
+* Physical PMUs from the RSE DER-TF are connected via optical fibers to the RSE IoT & Big Data Laboratory.
 
 * Three Linux-based servers hosted in the RSE IoT & Big Data Lab operate as FLUIDOS nodes, forming a computing continuum.
 
@@ -18,7 +18,6 @@ The testbed includes:
 * FLUIDOS MIMO (Model-based and Intent-driven Meta-Orchestrator), along with Prometheus and Pushgateway for monitoring and metrics collection.
 
 * Phasor Data Concentrator (PDC) applications and a Ping Sidecar service.
-
 
 
 ## Setup
@@ -30,13 +29,12 @@ The testbed includes:
 
 ### FLUIDOS Node
 
-On each server run the setup scripts [consumer.sh](./setup/consumer.sh), [provider.sh](./setup/provider.sh), and [provider.sh](./setup/provider2.sh) respectively to install one FLUIDOS consumer and two FLUIDOS providers.
+On each server run the setup scripts [consumer.sh](./setup/consumer.sh), [provider.sh](./setup/provider.sh), and [provider2.sh](./setup/provider2.sh) respectively to install one FLUIDOS consumer and two FLUIDOS providers. Remember to insert the right IPs and network interfaces specific of the three servers.
 The scripts will install K3s, Liqo, FLUIDOS, Multus, and Longhorn, and add Location, Latency and Carbon Emission data on the three FLUIDOS nodes flavors. The scripts also add some configuration changes to K3s to reach the internal GitLab registry. 
 
 Manually generate peerings using the command:
-
 ```
-liqo generate peer-command
+liqoctl generate peer-command
 ```
 
 ### Percona Operator for MySQL
@@ -75,15 +73,16 @@ SET GLOBAL auto_increment_increment=1;
 ### Model-based and Intent-driven Meta-Orchestrator
 
 Install the Prometheus and Push Gateway Docker containers on the consumer node:
-
 ```
 docker create network monitoring
 docker run -d -p 9091:9091 --network monitoring --name pushgateway prom/pushgateway
 docker run -it -v $PWD/config:/etc/prometheus -p 9090:9090 --network monitoring --rm prom/prometheus:main
 ```
 
-Run FLUIDOS MIMO in the consumer node:
-clone the repository available at: https://github.com/fluidos-project/fluidos-modelbased-metaorchestrator
+To run FLUIDOS MIMO in the consumer node firt clone the repository
+```
+git clone https://github.com/fluidos-project/fluidos-modelbased-metaorchestrator.git
+```
 
 The operator assumes the following to be available within the system:
 * Kubernetes version >= 28.1.0
@@ -96,15 +95,15 @@ Moreover, the interaction with the operator assumes:
 To run the operator in development mode, the following is required:
 * python >= 3.11
 
-Manually modify the file fluidos_model_orchestrator/configuration.py and substitute the "arm64" architecture specification with "amd64". 
-Run: 
+Manually modify the file `fluidos_model_orchestrator/configuration.py` and substitute the "arm64" architecture specification with "amd64". 
+Then run: 
 ```
 kubectl apply -f fluidos-modelbased-metaorchestrator/deployment/fluidos-meta-orchestrator/crds/fluidos-deployment-crd.yaml -n fluidos
 ```
 ```
 pip install -e .
 ```
-Create mbmo-config-map.yaml
+Create `mbmo-config-map.yaml`
 ```
 apiVersion: v1
 kind: ConfigMap
@@ -113,7 +112,7 @@ metadata:
 data:
   UPDATE_FLAVORS: "False"
   UPDATE_FLAVORS_INTERVAL: "360"
-  ELECTRICITY_MAP_API_KEY: "xxx"
+  ELECTRICITY_MAP_API_KEY: "xxxxxx"
   architecture: "amd64"
   MSPL_ENDPOINT: "http://fluidos-mspl.sl.cloud9.ibm.com:8002/meservice"
   monitor_enabled: "True"
@@ -122,16 +121,15 @@ data:
   MONITOR_CONTRACTS: "False"
   SKIP_PEERING: "True"
   HOST_MAPPING: "vr.fluidos.eu:2b2c5c29-cbcd-451d-a231-acc5806b302d;rm.fluidos.eu:d93276fe-14ad-4921-9fb1-a6305bfbaac5"
-
 ```
+Then apply it
 ```
-kubectl apply -f fluidos-modelbased-metaorchestrator/mbmo-config-map.yaml -n fluidos
+kubectl apply -f mbmo-config-map.yaml -n fluidos
 ```
-Configure the /fluidos-modelbased-metaorchestrator/utils/prometheus/config/prometheus.yml file as follows:
-
+Configure the `utils/prometheus/config/prometheus.yml` file as follows:
 ```
 global:
-  scrape_interval:     15s # By default, scrape targets every 15 seconds.
+  scrape_interval: 15s # By default, scrape targets every 15 seconds.
   external_labels:
     monitor: 'external_label'
 
@@ -142,26 +140,24 @@ scrape_configs:
       - targets: ['pushgateway:9091']
 ```
 Then run the MIMO orchestrator:
-
 ```
 sudo python3 -m kopf run --verbose -m fluidos_model_orchestrator -A
 ```
 
 ### Ping sidecar container image
 
-On each node use following commands to build the `ping-sidecar` image, save it as a `.tar` archive, and import it into the k3s container runtime:
-
+On each node use the following commands to build the `ping-sidecar` image, save it as a `.tar` archive, and import it into the k3s container runtime:
 ```
 sudo docker build -t myregistry/ping-sidecar:latest . && \
 sudo docker save myregistry/ping-sidecar2 -o ./ping-sidecar.tar && \
 sudo k3s ctr image import ping-sidecar.tar
 ```
-Run on the consumer node:
+Then run on the consumer node:
 ```
 kubectl apply -f deploy/flavor-reader-rbac.yaml 
 ```
 
-### PDC
+### OpenPDC
 Finally, we can apply from the consumer the OpenPDC application with the command
 ```
 kubectl apply -f deploy/openpdc-lower-level-y3.yaml -n lower
@@ -175,11 +171,10 @@ and use it to connect with the cluster enabling port-forwarding with a command l
 ssh -L 3306:localhost:NodePort -L 8500:localhost:30085 -L 6165:localhost:30065 user@kubernetes-node
 ```
 We can also apply the OpenPDC higher level application on the consumer node: 
-
 ```
 kubectl apply -f deploy/openpdc-higher-level.yaml -n higher
 ```
-Then we can use the GUI to configure the PMUs' connection and output streams forming a hierarchical architecture.
+Then we can use the GUI to configure the PMUs' connections and output streams forming a hierarchical architecture.
 
 ## Intent Definition and Scenario
 
@@ -209,12 +204,57 @@ The scenario is described as follows:
    * The flavor definition of Provider 1 is updated with the new latency value.
    * Since it no longer meets the latency constraint, MIMO automatically reschedules the PDC workload to Provider 2.
 
-
 This sequence demonstrates the intent-driven orchestration capability of MIMO.
 
----
-
-## License and Acknowledgments
-This project is licensed under the Apache License - version 2.0, see the [LICENSE](LICENSE) file for details.
-
-This project includes some previous work done by [Claudio Usai](https://github.com/claudious96), [Claudio Lorina](https://github.com/claudiolor) and [Riccardo Medina](https://github.com/rmedina97) as part of their master thesis at Politecnico di Torino.
+## Monitoring Dashboards
+We setup kube-prometheus monitorining system with the following commands
+```
+git clone https://github.com/prometheus-operator/kube-prometheus.git
+cd kube-prometheus
+kubectl create -f manifests/setup
+until kubectl get servicemonitors --all-namespaces ; do date; sleep 1; echo ""; done
+kubectl create -f manifests/
+```
+To expose the Grafana service to be accessible from outside the server run
+```
+kubectl --namespace monitoring port-forward svc/grafana 3000:3000 --address IP_CONSUMER
+```
+The default username and password are both admin.
+To obtain metrics persistency add in the manifest folder the following PersistentVolume definition
+```
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pvc-prometheus-migration-prometheus-0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: longhorn
+  volumeMode: Filesystem
+  hostPath:
+    path: "/mnt/data"
+```
+and the corresponding PersistentVolumeClaim
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: prometheus
+    prometheus: prometheus-migration-prometheus
+  name: prometheus-prometheus-migration-prometheus-db-prometheus-prometheus-migration-prometheus-0
+  namespace: monitoring
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: longhorn
+  volumeMode: Filesystem
+  volumeName: pvc-prometheus-migration-prometheus-0
+```
+We save in the deploy folder the json file of two already configured custom dashboards.

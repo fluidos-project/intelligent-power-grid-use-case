@@ -16,21 +16,3 @@ data:
       dataLocality: "best-effort"
       staleReplicaTimeout: "2880" # 48 hours in minutes
       fromBackup: ""
-    #  diskSelector: "ssd,fast"
-    #  nodeSelector: "storage,fast"
-    #  fsType: "ext4"
-    #  recurringJobs: '[
-    #   {
-    #     "name":"snap",
-    #     "task":"snapshot",
-    #     "cron":"*/1 * * * *",
-    #     "retain":1
-    #   },
-    #   {
-    #     "name":"backup",
-    #     "task":"backup",
-    #     "cron":"*/2 * * * *",
-    #     "retain":1,
-    #     "labels": {
-    #       "interval":"2m"
-    #      }

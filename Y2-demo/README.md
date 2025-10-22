@@ -1,6 +1,6 @@
 # Intelligent Power Grid Y2 Demo
 
-This document provides a brief introduction to the implementation of the Intelligent Power Grid use case testbed for Y2 Demo. Our goal is to install the demo within two FLUIDOS nodes **v0.1.0-rc.1**, each of which is running a single Kubernetes node on a virtual machine with 16GB of RAM, 8 vCPU and a fresh volume of Ubuntu 20.04 LTS. This guide is inspired by the [documentation](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/docs/installation/installation.md#manual-installation) provided in the [Node](https://github.com/fluidos-project/node/) repository.
+This document provides the basic information to support the implementation of the Year 2 Intelligent Power Grid Use Case Demonstration. Our goal is to install the demo within two FLUIDOS nodes **v0.1.0-rc.1**, each of which is running a single Kubernetes node on a virtual machine with 16GB of RAM, 8 vCPU and a fresh volume of Ubuntu 20.04 LTS. This guide is inspired by the [documentation](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/docs/installation/installation.md#manual-installation) provided in the [Node](https://github.com/fluidos-project/node/) repository.
 
 ## Requirements
 As software requirements, after updating and upgrading all the packages, we have to install Helm, Kubectl, Liqoctl and Longhorn. The first three are FLUIDOS requirements from the testbed while Longhorn is required by our application for internal-cluster data replication. Docker and KinD are not needed in this setup.
@@ -15,7 +15,7 @@ apt-get update
 apt-get install helm
 ```
 ### Kubectl
-We install K3s distribution of Kubernetes, which features a very limited resource consumption, performance close to vanilla Kubernetes and a very simple setup procedure. This will allow the testbed to be replicated also onto edge devices like, Raspberry Pis.
+We install the K3s distribution of Kubernetes, which features a very limited resource consumption, performance close to vanilla Kubernetes and a very simple setup procedure. This will allow the testbed to be replicated also onto edge devices like, Raspberry Pis.
 On the **consumer** cluster, we install K3s with the options
 ```
 curl -sfL https://get.k3s.io | K3S_NODE_NAME=fluidos-consumer INSTALL_K3S_VERSION=v1.24.17+k3s1 sh -s - server --cluster-init --kube-apiserver-arg="default-not-ready-toleration-seconds=20" --kube-apiserver-arg="default-unreachable-toleration-seconds=20" --write-kubeconfig-mode 644 --cluster-cidr="10.48.0.0/16" --service-cidr="10.50.0.0/16"
@@ -65,7 +65,7 @@ unzip v0.1.0-rc.1.zip
 rm v0.1.0-rc.1.zip
 mv node-0.1.0-rc.1 node
 ```
-The file [setup.sh](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/tools/scripts/setup.sh), stored in `node/tools/scripts/setup.sh`, contains the instructions to install two worker nodes and one control plane with KinD. From it we extract the commands to setup a testbed with two K3s clusters, each one with a single node.
+The file [setup.sh](https://github.com/fluidos-project/node/blob/v0.1.0-rc.1/tools/scripts/setup.sh), stored in `node/tools/scripts/setup.sh`, contains the instructions to install two worker nodes and one control plane with KinD. From it, we extract the commands to setup a testbed with two K3s clusters, each one with a single node.
 Name and labels must bepecified, thus on the consumer we run
 ```
 kubectl label nodes fluidos-consumer node-role.fluidos.eu/resources=true node-role.fluidos.eu/worker=true 
@@ -94,8 +94,8 @@ liqoctl install k3s --cluster-name fluidos-consumer \
   
 helm install node fluidos/node -n fluidos \
   --create-namespace -f node/quickstart/utils/consumer-values.yaml \
-  --set networkManager.configMaps.nodeIdentity.ip="192.168.30.83:30000" \
-  --set networkManager.configMaps.providers.local="192.168.30.154:30001" \
+  --set networkManager.configMaps.nodeIdentity.ip="IP_CONSUMER:30000" \
+  --set networkManager.configMaps.providers.local="IP_PROVIDER:30001" \
   --version 0.1.0-rc.1 \
   --wait
 ```
@@ -109,8 +109,8 @@ liqoctl install k3s --cluster-name fluidos-provider \
   
 helm install node fluidos/node -n fluidos \
   --create-namespace -f node/quickstart/utils/provider-values.yaml \
-  --set networkManager.configMaps.nodeIdentity.ip="192.168.30.154:30001" \
-  --set networkManager.configMaps.providers.local="192.168.30.83:30000" \
+  --set networkManager.configMaps.nodeIdentity.ip="IP_PROVIDER:30001" \
+  --set networkManager.configMaps.providers.local="IP_CONSUMER:30000" \
   --version 0.1.0-rc.1 \
   --wait
 ```
@@ -177,8 +177,3 @@ and use it to connect with the cluster enabling port-forwarding with a command l
 ```
 ssh -L 3306:localhost:NodePort -L 8500:localhost:30085 -L 6165:localhost:30065 user@kubernetes-node
 ```
-
-## License and Acknowledgments
-This project is licensed under the Apache License - version 2.0, see the [LICENSE](LICENSE) file for details.
-
-This project includes some previous work done by [Claudio Usai](https://github.com/claudious96), [Claudio Lorina](https://github.com/claudiolor) and [Riccardo Medina](https://github.com/rmedina97) as part of their master thesis at Politecnico di Torino.
